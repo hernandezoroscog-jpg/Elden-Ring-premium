@@ -1,44 +1,32 @@
-/* app.js — lógica de la app (Elden Ring Premium) */
+//Lógica principal de la app (Elden Ring)
 document.addEventListener('DOMContentLoaded', () => {
+
+  // Variables y referencias a elementos del DOM
   const BASE_URL = 'https://eldenring.fanapis.com/api/items';
-  const grid = document.getElementById('grid');
-  const loadMoreBtn = document.getElementById('load-more');
-  const searchInput = document.getElementById('search-input');
-  const typeFilter = document.getElementById('type-filter');
-  const rarityFilter = document.getElementById('rarity-filter');
-  const sortSelect = document.getElementById('sort-select');
-  const favCount = document.getElementById('fav-count');
+  const grid = document.getElementById('grid'); // Contenedor de tarjetas
+  const loadMoreBtn = document.getElementById('load-more'); // Botón para cargar más
+  const searchInput = document.getElementById('search-input'); // Input de búsqueda
+  const typeFilter = document.getElementById('type-filter'); // Filtro por tipo
+  const sortSelect = document.getElementById('sort-select'); // Filtro de orden
 
-  const modalBackdrop = document.getElementById('modal-backdrop');
-  const modalClose = document.getElementById('modal-close');
-  const modalTitle = document.getElementById('modal-title');
-  const modalImg = document.getElementById('modal-img');
-  const modalDesc = document.getElementById('modal-desc');
-  const modalMeta = document.getElementById('modal-meta');
-  const modalFav = document.getElementById('modal-fav');
-  const modalStats = document.getElementById('modal-stats');
-  const modalLore = document.getElementById('modal-lore');
-  const modalSimilar = document.getElementById('modal-similar');
+  const modalBackdrop = document.getElementById('modal-backdrop'); // Fondo del modal
+  const modalClose = document.getElementById('modal-close'); // Botón cerrar modal
+  const modalTitle = document.getElementById('modal-title'); // Título modal
+  const modalImg = document.getElementById('modal-img'); // Imagen modal
+  const modalDesc = document.getElementById('modal-desc'); // Descripción modal
+  const modalMeta = document.getElementById('modal-meta'); // Meta info modal
+  const modalStats = document.getElementById('modal-stats'); // Stats modal
+  const modalLore = document.getElementById('modal-lore'); // Lore modal
+  const darkToggle = document.getElementById('dark-toggle'); // Botón modo oscuro
 
-  const openFavsBtn = document.getElementById('open-favs');
-  const darkToggle = document.getElementById('dark-toggle');
-
+  // Variables de estado
   let currentPage = 0;
   const ITEMS_PER_PAGE = 12;
   let loading = false;
   let allTypes = new Set();
-  let loadedItems = []; // cache de ítems cargados
+  let loadedItems = []; // Cache de ítems cargados
 
-  // Favoritos en localStorage
-  const LS_KEY = 'er_favs_v1';
-  function getFavs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || [] }catch(e){return []} }
-  function saveFavs(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); updateFavCount() }
-  function isFav(id){ return getFavs().includes(id) }
-  function toggleFav(id){ const list=getFavs(); const idx=list.indexOf(id); if(idx>=0){ list.splice(idx,1) } else { list.push(id) } saveFavs(list) }
-  function updateFavCount(){ favCount.textContent = getFavs().length }
-  updateFavCount();
-
-  // Tema persistente
+  // Lógica de tema claro/oscuro persistente
   const THEME_KEY = 'er_theme_v1';
   const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
   if(savedTheme === 'light') document.body.classList.add('light-theme'), darkToggle.textContent='Modo oscuro';
@@ -51,15 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
     darkToggle.textContent = isLight? 'Modo oscuro' : 'Modo claro';
   });
 
-  // Modal
+  // Función para abrir el modal de detalles
   function openModal(item){
     modalTitle.textContent = item.name || 'Ítem';
     modalImg.src = item.image || 'placeholder.png';
     modalImg.alt = `Imagen de ${item.name}`;
     modalDesc.textContent = (Array.isArray(item.description)? item.description.join('\n\n') : (item.description || 'Sin descripción.'));
-    modalMeta.textContent = `Tipo: ${item.type || '—'} • Categoría: ${item.category || '—'}`;
+    modalMeta.textContent = `Tipo: ${item.type || '—'}`;
     modalStats.innerHTML = ''; modalLore.textContent = '';
-    // Stats y lore si los hay (la API puede no tenerlos)
     if(item.attributes){
       modalStats.innerHTML = '<strong>Stats:</strong><div style="margin-top:6px">';
       for(const [k,v] of Object.entries(item.attributes)){
@@ -68,23 +55,29 @@ document.addEventListener('DOMContentLoaded', () => {
       modalStats.innerHTML += '</div>';
     }
     if(item.lore) modalLore.textContent = Array.isArray(item.lore)? item.lore.join('\n\n') : item.lore;
-    modalFav.textContent = isFav(item.uuid) ? 'Quitar de favoritos' : 'Agregar a favoritos';
-    modalFav.onclick = ()=>{ toggleFav(item.uuid); modalFav.textContent = isFav(item.uuid)? 'Quitar de favoritos' : 'Agregar a favoritos'; };
-    modalSimilar.onclick = ()=>{ findAndShowSimilar(item); };
-
     modalBackdrop.classList.add('show');
     modalBackdrop.setAttribute('aria-hidden','false');
   }
   modalClose.addEventListener('click', ()=>{ modalBackdrop.classList.remove('show'); modalBackdrop.setAttribute('aria-hidden','true'); });
   modalBackdrop.addEventListener('click', (e)=>{ if(e.target === modalBackdrop) modalBackdrop.classList.remove('show'); });
 
-  // Skeleton
-  function renderSkeleton(count=6){ grid.innerHTML = ''; for(let i=0;i<count;i++){ const s = document.createElement('div'); s.className='card'; s.innerHTML = `\n    <div class=\"skeleton media\"></div>\n    <div class=\"skeleton title\"></div>\n    <div class=\"skeleton line\"></div>\n    <div class=\"skeleton line\" style=\"width:80%\"></div>\n  `; grid.appendChild(s); } }
 
-  // Crear tarjeta
+  // Función para mostrar tarjetas "skeleton" mientras carga
+  function renderSkeleton(count=6, replace=true){
+    if(replace) grid.innerHTML = '';
+    for(let i=0;i<count;i++){
+      const s = document.createElement('div');
+      s.className='card';
+      s.innerHTML = `\n    <div class="skeleton media"></div>\n    <div class="skeleton title"></div>\n    <div class="skeleton line"></div>\n    <div class="skeleton line" style="width:80%"></div>\n  `;
+      grid.appendChild(s);
+    }
+  }
+
+  // Función para crear una tarjeta de ítem
   function createCard(item){
-    const card = document.createElement('article'); card.className='card'; card.setAttribute('tabindex','0');
-    card.dataset.rarity = item.rarity || '';
+    const card = document.createElement('article');
+    card.className='card fade-in';
+    card.setAttribute('tabindex','0');
     card.innerHTML = `
       <div class="media"><img loading="lazy" src="${item.image || 'placeholder.png'}" alt="Imagen de ${escapeHTML(item.name||'Ítem')}"></div>
       <h3>${escapeHTML(item.name||'Ítem')}</h3>
@@ -92,121 +85,142 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="meta">
         <div class="tag">${escapeHTML(item.type || '—')}</div>
         <div class="actions">
-          <button class="icon-btn fav" title="Favorito" data-id="${item.uuid}">${isFav(item.uuid) ? '★' : '☆'}</button>
           <button class="icon-btn view" title="Ver detalle">🔍</button>
         </div>
       </div>
     `;
-
     card.querySelector('.view').addEventListener('click', ()=> openModal(item));
-    const favBtn = card.querySelector('.fav');
-    favBtn.addEventListener('click', ()=>{ toggleFav(item.uuid); favBtn.textContent = isFav(item.uuid)? '★' : '☆'; updateFavCount(); });
+    card.addEventListener('animationend', ()=> card.classList.remove('fade-in'));
     return card;
   }
 
-  // Utils
-  function shortenText(text, max){ if(text.length<=max) return text; return text.slice(0,max-1)+'…' }
-  function escapeHTML(s){ return String(s).replace(/[&<>\"']/g, (c)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":"&#39;"}[c]) ) }
+  // Utilidades para texto seguro y recortado
+  function shortenText(text, max){ return text.length<=max ? text : text.slice(0,max-1)+'…' }
+  function escapeHTML(s){ return String(s).replace(/[&<>"]|'/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]) ); }
 
-  // Fetch items y render
-  async function fetchItems(page=0){
-    if(loading) return;
-    loading=true; renderSkeleton(6);
-    try{
-      const url = `${BASE_URL}?limit=${ITEMS_PER_PAGE}&page=${page}`;
-      const res = await fetch(url);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const json = await res.json();
-      const items = json.data || [];
-
-      // almacenar en cache
-      items.forEach(it => { loadedItems.push(it); if(it.type) allTypes.add(it.type); });
-      populateTypeFilter();
-
-      if(page===0) grid.innerHTML='';
-
-      if(items.length===0){ loadMoreBtn.disabled=true; loadMoreBtn.textContent='No hay más ítems' }
-      items.forEach(item => grid.appendChild(createCard(item)));
-
-      currentPage = page+1;
-    }catch(err){
-      console.error('Error obteniendo ítems',err);
-      grid.innerHTML = `<p style="color:#ff6b6b; text-align:center">Error al cargar ítems — revisa la consola</p>`;
-    }finally{ loading=false }
+  // Renderiza el grid de ítems (con filtros y orden)
+  function renderGrid(items){
+    grid.innerHTML = '';
+    items.forEach(item => grid.appendChild(createCard(item)));
   }
 
-  // Filtrado local (sobre lo cargado)
-  function filterGrid(){
-    const q = searchInput.value.trim().toLowerCase();
-    const type = typeFilter.value;
-    const rarity = rarityFilter.value;
-    const sort = sortSelect.value;
+  // Obtiene ítems de la API y los muestra
+async function fetchItems(page = 0) {
+  if (loading) return;
+  loading = true;
+  loadMoreBtn.disabled = true;
+  loadMoreBtn.textContent = 'Cargando...';
 
-    const cards = Array.from(grid.children).filter(n=> !n.classList.contains('skeleton'));
-    // Opcional: ordenar visualmente (simple approach: detach, sort array, re-append)
-    if(sort){
-      const nodes = cards.slice();
-      nodes.sort((a,b)=>{
-        const aName = a.querySelector('h3')?.textContent?.toLowerCase()||'';
-        const bName = b.querySelector('h3')?.textContent?.toLowerCase()||'';
-        if(sort==='name-asc') return aName.localeCompare(bName);
-        if(sort==='name-desc') return bName.localeCompare(aName);
-        return 0;
-      });
-      // reappend in order
-      nodes.forEach(n => grid.appendChild(n));
+  // Crear skeletons y guardarlos para borrarlos luego
+  const skeletons = [];
+  for (let i = 0; i < ITEMS_PER_PAGE; i++) {
+    const s = document.createElement('div');
+    s.className = 'card skeleton-card';
+    s.innerHTML = `
+      <div class="skeleton media"></div>
+      <div class="skeleton title"></div>
+      <div class="skeleton line"></div>
+      <div class="skeleton line" style="width:80%"></div>
+    `;
+    grid.appendChild(s);
+    skeletons.push(s);
+  }
+
+  try {
+    const url = `${BASE_URL}?limit=${ITEMS_PER_PAGE}&page=${page}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const json = await res.json();
+    const items = json.data || [];
+
+    items.forEach(it => {
+      loadedItems.push(it);
+      if (it.type) allTypes.add(it.type);
+    });
+    populateTypeFilter();
+
+    // ❗️ Solo eliminar los skeletons recién creados
+    skeletons.forEach(s => s.remove());
+
+    if (items.length === 0) {
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = 'No hay más ítems';
+    } else {
+      items.forEach(item => grid.appendChild(createCard(item)));
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = 'Cargar más ítems';
+
+      if (page > 0 && items.length > 0) {
+        setTimeout(() => {
+          const last = grid.lastElementChild;
+          if (last) {
+            last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+      }
     }
 
-    const visibleCards = Array.from(grid.children).filter(n=> !n.classList.contains('skeleton'));
-    visibleCards.forEach(card=>{
-      const title = card.querySelector('h3')?.textContent?.toLowerCase()||'';
-      const desc = card.querySelector('.desc')?.textContent?.toLowerCase()||'';
-      const tag = card.querySelector('.tag')?.textContent?.toLowerCase()||'';
-      let visible = true;
-      if(q && !(title.includes(q) || desc.includes(q) || tag.includes(q))) visible=false;
-      if(type && tag !== type.toLowerCase()) visible=false;
-      if(rarity){ const r = card.dataset.rarity || ''; if(rarity && r !== rarity) visible=false }
-      card.style.display = visible? 'block' : 'none';
-    });
+    currentPage = page + 1;
+
+    const errMsg = document.getElementById('grid-error');
+    if (errMsg) errMsg.remove();
+
+  } catch (err) {
+    console.error('Error obteniendo ítems', err);
+    skeletons.forEach(s => s.remove());
+
+    if (!document.getElementById('grid-error')) {
+      const p = document.createElement('p');
+      p.id = 'grid-error';
+      p.style.color = '#ff6b6b';
+      p.style.textAlign = 'center';
+      p.textContent = 'Error al cargar ítems — revisa la consola';
+      grid.parentNode.insertBefore(p, grid.nextSibling);
+    }
+
+    loadMoreBtn.disabled = false;
+    loadMoreBtn.textContent = 'Cargar más ítems';
+
+  } finally {
+    loading = false;
+  }
+}
+
+
+  // Filtrado y ordenamiento de los ítems cargados
+  function filterGrid(){
+    let items = loadedItems.slice();
+    const q = searchInput.value.trim().toLowerCase();
+    const type = typeFilter.value;
+    const sort = sortSelect.value;
+    if(q) items = items.filter(item =>
+      (item.name||'').toLowerCase().includes(q) ||
+      (Array.isArray(item.description)? item.description.join(' '):(item.description||'')).toLowerCase().includes(q) ||
+      (item.type||'').toLowerCase().includes(q)
+    );
+    if(type) items = items.filter(item => (item.type||'').toLowerCase() === type.toLowerCase());
+    if(sort==='name-asc') items.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    if(sort==='name-desc') items.sort((a,b)=> (b.name||'').localeCompare(a.name||''));
+    renderGrid(items);
   }
 
+
+  // Llena el filtro de tipos dinámicamente
   function populateTypeFilter(){
     const current = typeFilter.value;
     const list = Array.from(allTypes).sort();
-    typeFilter.innerHTML = '<option value=\"\">Todos los tipos</option>' + list.map(t=>`<option value=\"${t}\">${t}</option>`).join('');
+    typeFilter.innerHTML = '<option value="">Todos los tipos</option>' + list.map(t=>`<option value="${t}">${t}</option>`).join('');
     typeFilter.value = current;
   }
 
-  // Ver similares (simple demo: buscar por mismo tipo)
-  function findAndShowSimilar(item){
-    const sameType = loadedItems.filter(it => it.type === item.type && it.uuid !== item.uuid);
-    if(sameType.length === 0){ alert('No se encontraron ítems similares cargados. Carga más o prueba otro filtro.'); return; }
-    // Abrir el primero similar en modal
-    openModal(sameType[0]);
-  }
-
-  // Eventos
+  // Eventos principales de laapp
   loadMoreBtn.addEventListener('click', ()=> fetchItems(currentPage));
-  searchInput.addEventListener('input', ()=> filterGrid());
-  typeFilter.addEventListener('change', ()=> filterGrid());
-  rarityFilter.addEventListener('change', ()=> filterGrid());
-  sortSelect.addEventListener('change', ()=> filterGrid());
+  searchInput.addEventListener('input', filterGrid);
+  typeFilter.addEventListener('change', filterGrid);
+  sortSelect.addEventListener('change', filterGrid);
 
-  openFavsBtn.addEventListener('click', ()=>{
-    const favs = getFavs();
-    if(favs.length===0){ alert('No tienes favoritos aún. Marca estrellas en las tarjetas.'); return; }
-    const found = favs.map(id => loadedItems.find(it => it.uuid === id)).filter(Boolean);
-    if(found.length===0){ alert('Tus favoritos aún no están cargados en la lista. Carga más ítems o recarga la página.'); return; }
-    openModal(found[0]);
-  });
-
-  // Inicial
+  // Inicializa la app cargando los primeros ítems
   fetchItems(0);
-
-  // Escuchar storage (otras pestañas)
-  window.addEventListener('storage', (e)=>{ if(e.key===LS_KEY) updateFavCount() });
-
-  // Enter en búsqueda: llevar al primer resultado visible
-  searchInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const first = grid.querySelector('.card:not([style*="display: none"])'); if(first) first.scrollIntoView({behavior:'smooth', block:'center'}); } });
-
+  searchInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ const first = grid.querySelector('.card:not([style*="display: none"]):not(.skeleton)'); if(first) first.scrollIntoView({behavior:'smooth', block:'center'}); } });
 });
