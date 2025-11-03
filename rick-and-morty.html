@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Elden Ring — Items Showcase (Premium)</title>
+
+  <!-- Tipografías: Cinzel (estética Trajan) + Inter para UI -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="logo.png" alt="Logo Elden Ring" class="logo" />
+      <div>
+        <h1>Elden Ring — Items</h1>
+        <div class="muted-small">Colección de ítems</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="dark-toggle" class="btn secondary" title="Alternar tema">Modo claro</button>
+      <button id="open-favs" class="btn gold">Favoritos (<span id="fav-count">0</span>)</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search" role="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden style="opacity:0.7"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></circle></svg>
+      <input id="search-input" placeholder="Buscar por nombre, tipo o descripción..." aria-label="Buscar ítems" />
+    </div>
+
+    <div class="filters">
+      <select id="type-filter" class="select" aria-label="Filtrar por tipo">
+        <option value="">Todos los tipos</option>
+      </select>
+
+      <select id="rarity-filter" class="select" aria-label="Filtrar por rareza">
+        <option value="">Todas las rarezas</option>
+        <option value="common">Común</option>
+        <option value="uncommon">Poco común</option>
+        <option value="rare">Raro</option>
+        <option value="legendary">Legendario</option>
+      </select>
+
+      <select id="sort-select" class="select" aria-label="Ordenar">
+        <option value="">Ordenar</option>
+        <option value="name-asc">Nombre A→Z</option>
+        <option value="name-desc">Nombre Z→A</option>
+      </select>
+    </div>
+  </div>
+
+  <main>
+    <div id="grid" class="grid" aria-live="polite"></div>
+
+    <div class="load-more-wrap">
+      <button id="load-more" class="load-more">Cargar más ítems</button>
+    </div>
+  </main>
+
+  <!-- Modal pergamino mágico (completo) -->
+  <div id="modal-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="close" id="modal-close" aria-label="Cerrar">✕</button>
+      <div class="scroll-frame">
+        <div class="scroll-edge"></div>
+        <h2 id="modal-title" class="title">Título</h2>
+        <div class="body">
+          <div class="media-col"><img id="modal-img" src="placeholder.png" alt="Imagen del ítem"></div>
+          <div class="info">
+            <p id="modal-desc">Descripción</p>
+            <p class="muted-small" id="modal-meta"></p>
+
+            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="modal-fav" class="btn gold">Agregar a favoritos</button>
+              <button id="modal-similar" class="btn secondary">Ver similares</button>
+            </div>
+
+            <div id="modal-stats" style="margin-top:12px"></div>
+            <div id="modal-lore" style="margin-top:12px" class="muted-small"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script src="app.js"></script>
+</body>
+</html>
